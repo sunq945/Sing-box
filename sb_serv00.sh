@@ -393,7 +393,7 @@ for entry in "${FILE_INFO[@]}"; do
     if [ -e "$NEW_FILENAME" ]; then
         green "$NEW_FILENAME already exists, Skipping download"
     else
-        curl -L -sS -o "$NEW_FILENAME" "$URL"
+        wget -q --show-progress -c "$URL" -O "$NEW_FILENAME"
         green "Downloading $NEW_FILENAME"
     fi
     chmod +x "$NEW_FILENAME"
@@ -437,7 +437,15 @@ if [ -e "$(basename ${FILE_MAP[bot]})" ]; then
     pgrep -x "$(basename ${FILE_MAP[bot]})" > /dev/null && green "$(basename ${FILE_MAP[bot]}) is running" || { red "$(basename ${FILE_MAP[bot]}) is not running, restarting..."; pkill -x "$(basename ${FILE_MAP[bot]})" && nohup ./"$(basename ${FILE_MAP[bot]})" "${args}" >/dev/null 2>&1 & sleep 2; purple "$(basename ${FILE_MAP[bot]}) restarted"; }
 fi
 sleep 5
-rm -f "$(basename ${FILE_MAP[npm]})" "$(basename ${FILE_MAP[web]})" "$(basename ${FILE_MAP[bot]})"
+#rm -f "$(basename ${FILE_MAP[npm]})" "$(basename ${FILE_MAP[web]})" "$(basename ${FILE_MAP[bot]})"
+cat > app_map.json << EOF
+{
+  "bot":"${FILE_MAP[bot]}",
+  "web":"${FILE_MAP[web]}",
+  "npm":"${FILE_MAP[npm]}",
+  "argo_auth":"${ARGO_AUTH}"
+}
+EOF
 }
 
 get_ip() {
@@ -481,8 +489,69 @@ cat list.txt
 purple "\n$WORKDIR/list.txt saved successfully"
 purple "Running done!"
 sleep 2
-rm -rf boot.log config.json sb.log core tunnel.yml tunnel.json fake_useragent_0.2.0.json
+rm -rf boot.log sb.log 
 }
+
+CRON_CMD="/bin/bash /usr/home/$USER/$WORKDIR/checksb.sh" 
+
+get_timer() {
+    while true; do
+        reading "请输入定时分钟数(0~59,${yellow}注意：输入0则取消定时${re}${red}): " time_out
+        if [[ "$time_out" =~ ^[0-9]+$ ]] && [ "$time_out" -ge -1 ] && [ "$time_out" -le 60 ]; then
+            green "你的定时分钟数为: $time_out"
+            if [ $time_out == "0" ];then
+              yellow "如果您已经设置过定时，以下即将为您取消定时检测运行状态"
+            fi
+            break
+        else
+            yellow "输入错误，请重新输入分钟数(0~59)"
+        fi
+    done
+}
+
+
+del_cron(){
+  (crontab -l | grep -v -F "* * $CRON_CMD")| crontab -
+  rm -f /usr/home/$USER/checksb.log  
+}
+
+add_cron(){
+  (crontab -l; echo "*/$time_out * * * * $CRON_CMD") | crontab -
+}
+
+create_cron(){
+  local path=$(pwd)  
+  cd $WORKDIR
+  get_timer  
+  if [ ! -f ./checksb.sh ];then  
+  yellow "正在下载 checksb.sh "
+  wget -q --show-progress -c https://raw.githubusercontent.com/sunq945/Sing-box/main/checksb.sh -O checksb.sh && chmod +x checksb.sh 
+  fi
+  green "下载 checksb.sh 完毕，正在设置crontab..." 
+  cron_record=$(crontab -l | grep -F "* * $CRON_CMD")
+  if [ -z "$cron_record" ];then
+    if [ $time_out != "0" ];then
+      add_cron
+      green "设置定时检测运行状态成功"
+    fi
+  else
+    #echo $cron_record
+    if [  $time_out != "0" ];then
+      r_time=$(echo ${cron_record:2}| awk -F' ' '{print $1}')
+      if [ $r_time != $time_out ] ;then        
+        del_cron
+        add_cron
+        green "修改定时检测运行状态成功"
+      fi
+    else
+      del_cron
+      green "取消定时检测运行状态成功"
+    fi
+
+  fi
+  cd $path
+} 
+
 
 menu() {
    clear
@@ -493,24 +562,27 @@ menu() {
    echo -e "${green}TG反馈群组：${re}${yellow}https://t.me/vps888${re}\n"
    purple "转载请著名出处，请勿滥用\n"
    green "1. 安装sing-box"
-   echo  "==============="
+   echo  "========================="
    red "2. 卸载sing-box"
-   echo  "==============="
+   echo  "========================="
    green "3. 查看节点信息"
-   echo  "==============="
-   yellow "4. 清理所有进程"
-   echo  "==============="
+   echo  "========================="
+   green "4. 设置定时检测运行状态？"
+   echo  "========================="
+   yellow "5. 清理所有进程"
+   echo  "========================="
    red "0. 退出脚本"
-   echo "==========="
-   reading "请输入选择(0-3): " choice
+   echo  "========================="
+   reading "请输入选择(0-5): " choice
    echo ""
     case "${choice}" in
         1) install_singbox ;;
         2) uninstall_singbox ;; 
         3) cat $WORKDIR/list.txt ;; 
-	4) kill_all_tasks ;;
+        4) create_cron ;;
+	5) kill_all_tasks ;;
         0) exit 0 ;;
-        *) red "无效的选项，请输入 0 到 4" ;;
+        *) red "无效的选项，请输入 0 到 5" ;;
     esac
 }
 menu
