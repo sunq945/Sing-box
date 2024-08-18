@@ -22,9 +22,19 @@ export ARGO_AUTH=${ARGO_AUTH:-''}
 export CFIP=${CFIP:-'www.visa.com.tw'} 
 export CFPORT=${CFPORT:-'443'} 
 
-[[ "$HOSTNAME" == "s1.ct8.pl" ]] && WORKDIR="domains/${USERNAME}.ct8.pl/logs" || WORKDIR="domains/${USERNAME}.serv00.net/logs"
+
+SERVER_TYPE=$(echo $HOSTNAME | awk -F'.' '{print $2}')
+
+if [ $SERVER_TYPE == "ct8" ];then
+    DOMAIN=$USER.ct8.pl
+elif [ $SERVER_TYPE == "serv00" ];then
+    DOMAIN=$USER.serv00.net
+else
+    DOMAIN="unknown-domain"
+fi
+WORKDIR="/usr/home/$USER/domains/$DOMAIN/logs"
+
 [ -d "$WORKDIR" ] || (mkdir -p "$WORKDIR" && chmod 777 "$WORKDIR")
-ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9
 
 read_vmess_port() {
     while true; do
@@ -87,6 +97,7 @@ echo -e "${yellow}面板${purple}Additional services中的Run your own applicati
 reading "\n确定继续安装吗？【y/n】: " choice
   case "$choice" in
     [Yy])
+    	ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9
         cd $WORKDIR
         read_nz_variables
         read_vmess_port
@@ -493,7 +504,7 @@ sleep 2
 rm -rf boot.log sb.log 
 }
 
-CRON_CMD="/bin/bash /usr/home/$USER/$WORKDIR/checksb.sh" 
+CRON_CMD="/bin/bash $WORKDIR/checksb.sh" 
 
 get_timer() {
     while true; do
