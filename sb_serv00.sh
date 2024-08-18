@@ -92,13 +92,14 @@ read_nz_variables() {
 }
 
 install_singbox() {
+ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | (xargs -r kill -9 >/dev/null 2>&1)
 echo -e "${yellow}本脚本同时四协议共存${purple}(vmess-ws,vmess-ws-tls(argo),hysteria2,tuic)${re}"
 echo -e "${yellow}开始运行前，请确保在面板${purple}已开放3个端口，一个tcp端口和两个udp端口${re}"
 echo -e "${yellow}面板${purple}Additional services中的Run your own applications${yellow}已开启为${purplw}Enabled${yellow}状态${re}"
 reading "\n确定继续安装吗？【y/n】: " choice
   case "$choice" in
     [Yy])
-        ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9 >/dev/null
+        
         cd $WORKDIR
         read_nz_variables
         read_vmess_port
@@ -525,7 +526,7 @@ get_timer() {
 
 del_cron(){
   (crontab -l | grep -v -F "* * $CRON_CMD")| crontab -
-  rm -f /usr/home/$USER/checksb.log  
+  rm -f /usr/home/$USER/logs/checksb.log  
 }
 
 add_cron(){
