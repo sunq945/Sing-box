@@ -525,7 +525,8 @@ create_cron(){
   get_timer  
   if [ ! -f ./checksb.sh ];then  
   yellow "正在下载 checksb.sh "
-  wget -q --show-progress -c https://raw.githubusercontent.com/sunq945/Sing-box/main/checksb.sh -O checksb.sh && chmod +x checksb.sh 
+  wget -q --show-progress -c https://raw.githubusercontent.com/sunq945/Sing-box/main/checksb.sh -O checksb.sh 
+  chmod +x checksb.sh   
   fi
   green "下载 checksb.sh 完毕，正在设置crontab..." 
   cron_record=$(crontab -l | grep -F "* * $CRON_CMD")
