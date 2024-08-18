@@ -108,6 +108,7 @@ uninstall_singbox() {
         [Yy])
 	      ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9
        	      rm -rf $WORKDIR
+              del_cron
 	      clear
        	      green “四合一已完全卸载”
           ;;
@@ -543,6 +544,8 @@ create_cron(){
         del_cron
         add_cron
         green "修改定时检测运行状态成功"
+      else
+        purple "该定时任务已经存在，无需设置"
       fi
     else
       del_cron
