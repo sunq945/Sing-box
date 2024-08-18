@@ -23,7 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/eooce/ssh_tool/main/ssh_tool.sh -o 
 
 一键四协议安装脚本vmess-ws|vmess-ws-tls(argo)|hy2|tuic5
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/eooce/sing-box/main/sb_serv00.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/sunq945/sing-box/main/sb_serv00.sh)
 ```
 一键四协议无交互安装脚本vmess-ws|vmess-ws-tls(argo)|hy2|tuic5，需设置环境变量
 * 必填环境变量：VMESS_PORT HY2_PORT TUIC_PORT
