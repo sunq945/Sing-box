@@ -556,10 +556,10 @@ create_cron(){
 menu() {
    clear
    echo ""
-   purple "=== Serv00|ct8老王sing-box一键安装脚本 ===\n"
-   echo -e "${green}脚本地址：${re}${yellow}https://github.com/eooce/Sing-box${re}\n"
-   echo -e "${green}反馈论坛：${re}${yellow}https://bbs.vps8.me${re}\n"
-   echo -e "${green}TG反馈群组：${re}${yellow}https://t.me/vps888${re}\n"
+   purple "=== (Serv00|ct8) sing-box一键安装脚本 ===\n"
+   echo -e "${green}脚本地址：${re}${yellow}https://github.com/sun945/Sing-box${re}\n"
+   echo -e "原脚本地址：https://github.com/eooce/Sing-box\n"  
+
    purple "转载请著名出处，请勿滥用\n"
    green "1. 安装sing-box"
    echo  "========================="
