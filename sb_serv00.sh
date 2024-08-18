@@ -98,7 +98,7 @@ echo -e "${yellow}面板${purple}Additional services中的Run your own applicati
 reading "\n确定继续安装吗？【y/n】: " choice
   case "$choice" in
     [Yy])
-        ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9 2>/dev/null
+        ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9 >/dev/null
         cd $WORKDIR
         read_nz_variables
         read_vmess_port
