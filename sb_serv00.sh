@@ -230,7 +230,7 @@ EOF
   if [ $test == "no" ];then
     red "您的vps目前不具备运行程序的权限，正在为您获取权限，请稍后..."
     devil binexec on
-    yellow "已经为您获取权限，稍后将退出，请重新登录后再进行安装部署！"
+    yellow "已经为您获取权限，稍后将退出，请重新登录ssh后再进行安装部署！"
     sleep 3
     killall -u $(whoami)
   else
@@ -736,7 +736,7 @@ install_cron(){
 menu() {
    clear
    echo ""
-   purple "=== (Serv00|ct8) sing-box一键安装脚本 v1.0.0 ===\n"
+   purple "=== (Serv00|ct8) sing-box一键安装脚本 v1.0.1 ===\n"
    echo -e "${green}脚本地址：${re}${yellow}https://github.com/sun945/Sing-box${re}\n"
    echo -e "原脚本地址：https://github.com/eooce/Sing-box\n"  
 
