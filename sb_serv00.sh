@@ -37,40 +37,165 @@ WORKDIR="/usr/home/$USER/domains/$DOMAIN/logs"
 [ -d "$WORKDIR" ] || (mkdir -p "$WORKDIR" && chmod 777 "$WORKDIR")
 
 
-read_vmess_port() {
-    while true; do
-        reading "请输入vmess端口 (面板开放的tcp端口): " vmess_port
-        if [[ "$vmess_port" =~ ^[0-9]+$ ]] && [ "$vmess_port" -ge 1 ] && [ "$vmess_port" -le 65535 ]; then
-            green "你的vmess端口为: $vmess_port"
-            break
-        else
-            yellow "输入错误，请重新输入面板开放的TCP端口"
-        fi
-    done
-}
+reserve_port() {
+    local needed_udp_ports=2
+    local needed_tcp_ports=1
 
-read_hy2_port() {
-    while true; do
-        reading "请输入hysteria2端口 (面板开放的UDP端口): " hy2_port
-        if [[ "$hy2_port" =~ ^[0-9]+$ ]] && [ "$hy2_port" -ge 1 ] && [ "$hy2_port" -le 65535 ]; then
-            green "你的hysteria2端口为: $hy2_port"
-            break
-        else
-            yellow "输入错误，请重新输入面板开放的UDP端口"
-        fi
-    done
-}
+    if [ $needed_udp_ports -lt 0 ] || [ $needed_tcp_ports -lt 0 ] || [ $((needed_udp_ports + needed_tcp_ports)) -gt 3 ]; then
+        echo "错误：需要的端口数量设置不合理"
+        exit 1
+    fi
 
-read_tuic_port() {
-    while true; do
-        reading "请输入Tuic端口 (面板开放的UDP端口): " tuic_port
-        if [[ "$tuic_port" =~ ^[0-9]+$ ]] && [ "$tuic_port" -ge 1 ] && [ "$tuic_port" -le 65535 ]; then
-            green "你的tuic端口为: $tuic_port"
-            break
+    local port_list
+    local port_count
+    local current_port
+    local max_attempts
+    local attempts
+
+    local add_port
+    add_port() {
+        local port=$1
+        local type=$2
+        local result=$(devil port add "$type" "$port")
+        echo "尝试添加预留 $type 端口 $port: $result" 
+    }
+
+    local delete_port
+    delete_port() {
+        local port=$1
+        local type=$2
+        local result=$(devil port del "$type" "$port")
+        echo "删除 $type 端口 $port: $result"
+    }
+
+    update_port_list() {
+        port_list=$(devil port list)
+        port_count=$(echo "$port_list" | grep -c 'udp\|tcp')
+    }
+
+    update_port_list
+
+    udp_count=$(echo "$port_list" | grep -c 'udp')
+    tcp_count=$(echo "$port_list" | grep -c 'tcp')
+
+    if [ $udp_count -gt $needed_udp_ports ]; then
+        to_delete=$((udp_count - needed_udp_ports))
+        while [ $to_delete -gt 0 ]; do
+            UDP_PORT=$(echo "$port_list" | grep 'udp' | awk 'NR==1{print $1}')
+            echo "需要删除多余的 UDP 端口 $UDP_PORT"
+            delete_port $UDP_PORT "udp"
+            update_port_list
+            udp_count=$(echo "$port_list" | grep -c 'udp')
+            to_delete=$((to_delete - 1))
+        done
+    fi
+
+    if [ $tcp_count -gt $needed_tcp_ports ]; then
+        to_delete=$((tcp_count - needed_tcp_ports))
+        while [ $to_delete -gt 0 ]; do
+            TCP_PORT=$(echo "$port_list" | grep 'tcp' | awk 'NR==1{print $1}')
+            echo "需要删除多余的 TCP 端口 $TCP_PORT"
+            delete_port $TCP_PORT "tcp"
+            update_port_list
+            tcp_count=$(echo "$port_list" | grep -c 'tcp')
+            to_delete=$((to_delete - 1))
+        done
+    fi
+
+    update_port_list
+    total_ports=$(echo "$port_list" | grep -c 'udp\|tcp')
+
+    needed_ports=$((needed_udp_ports + needed_tcp_ports))
+    while [ $total_ports -lt $needed_ports ]; do
+        start_port=$(( RANDOM % 63077 + 1024 )) 
+
+        if [ $start_port -le 32512 ]; then
+            current_port=$start_port
+            increment=1
         else
-            yellow "输入错误，请重新输入面板开放的UDP端口"
+            current_port=$start_port
+            increment=-1
         fi
+
+        max_attempts=100 
+        attempts=0
+
+        while [ $udp_count -lt $needed_udp_ports ]; do
+            if add_port $current_port "udp"; then
+                update_port_list
+                udp_count=$(echo "$port_list" | grep -c 'udp')
+                total_ports=$(echo "$port_list" | grep -c 'udp\|tcp')
+            fi
+
+            current_port=$((current_port + increment))
+            attempts=$((attempts + 1))
+
+            if [ $attempts -ge $max_attempts ]; then
+                echo "超过最大尝试次数，无法添加足够的预留端口"
+                exit 1
+            fi
+        done
+
+        while [ $tcp_count -lt $needed_tcp_ports ]; do
+            if add_port $current_port "tcp"; then
+                update_port_list
+                tcp_count=$(echo "$port_list" | grep -c 'tcp')
+                total_ports=$(echo "$port_list" | grep -c 'udp\|tcp')
+            fi
+
+            current_port=$((current_port + increment))
+            attempts=$((attempts + 1))
+
+            if [ $attempts -ge $max_attempts ]; then
+                echo "超过最大尝试次数，无法添加足够的预留端口"
+                exit 1
+            fi
+        done
     done
+
+    local port_list=$(devil port list)
+
+    local TMP_UDP_PORT1=$(echo "$port_list" | grep 'udp' | awk 'NR==1{print $1}')
+    local TMP_UDP_PORT2=$(echo "$port_list" | grep 'udp' | awk 'NR==2{print $1}')
+    local TMP_UDP_PORT3=$(echo "$port_list" | grep 'udp' | awk 'NR==3{print $1}')
+    local TMP_TCP_PORT1=$(echo "$port_list" | grep 'tcp' | awk 'NR==1{print $1}')
+    local TMP_TCP_PORT2=$(echo "$port_list" | grep 'tcp' | awk 'NR==2{print $1}')
+    local TMP_TCP_PORT3=$(echo "$port_list" | grep 'tcp' | awk 'NR==3{print $1}')
+
+    if [ -n "$TMP_UDP_PORT1" ]; then
+        PORT1=$TMP_UDP_PORT1
+        if [ -n "$TMP_UDP_PORT2" ]; then
+            PORT2=$TMP_UDP_PORT2
+            if [ -n "$TMP_UDP_PORT3" ]; then
+                PORT3=$TMP_UDP_PORT3
+            elif [ -n "$TMP_TCP_PORT1" ]; then
+                PORT3=$TMP_TCP_PORT1
+            fi
+        elif [ -n "$TMP_TCP_PORT1" ]; then
+            PORT2=$TMP_TCP_PORT1
+            if [ -n "$TMP_TCP_PORT2" ]; then
+                PORT3=$TMP_TCP_PORT2
+            fi
+        fi
+    elif [ -n "$TMP_TCP_PORT1" ]; then
+        PORT1=$TMP_TCP_PORT1
+        if [ -n "$TMP_TCP_PORT2" ]; then
+            PORT2=$TMP_TCP_PORT2
+            if [ -n "$TMP_TCP_PORT3" ]; then
+                PORT3=$TMP_TCP_PORT3
+            fi
+        fi
+    fi
+    echo -e "匹配到预留端口，分配如下：\n"
+    hy2_port=$PORT1
+    tuic_port=$PORT2    
+    vmess_port=$PORT3
+    
+    printf "${purple}%-14s\t%-14s\t%-10s\n${re}" 端口类型 端口号 用途 
+    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$hy2_port" "hysteria2"
+    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$tuic_port" "hysteria2"
+    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" TCP "$vmess_port" "vmess"    
+    
 }
 
 read_nz_variables() {
@@ -92,23 +217,30 @@ read_nz_variables() {
 }
 
 install_singbox() {
-ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | (xargs -r kill -9 >/dev/null 2>&1)
+(ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" |awk '{print $2}' | xargs  -r kill -9)> /dev/null 2>&1
 echo -e "${yellow}本脚本同时四协议共存${purple}(vmess-ws,vmess-ws-tls(argo),hysteria2,tuic)${re}"
-echo -e "${yellow}开始运行前，请确保在面板${purple}已开放3个端口，一个tcp端口和两个udp端口${re}"
-echo -e "${yellow}面板${purple}Additional services中的Run your own applications${yellow}已开启为${purplw}Enabled${yellow}状态${re}"
+# echo -e "${yellow}开始运行前，请确保在面板${purple}已开放3个端口，一个tcp端口和两个udp端口${re}"
+# echo -e "${yellow}面板${purple}Additional services中的Run your own applications${yellow}已开启为${purplw}Enabled${yellow}状态${re}"
+
 reading "\n确定继续安装吗？【y/n】: " choice
   case "$choice" in
     [Yy])
         
         cd $WORKDIR
+        yellow "正在开启APP运行权限"
+        devil binexec on
+        green "APP运行权限已开启"
         read_nz_variables
-        read_vmess_port
-        read_hy2_port
-        read_tuic_port
+        # read_vmess_port
+        # read_hy2_port
+        # read_tuic_port
+        reserve_port
         argo_configure
         generate_config
         download_singbox
         get_links
+        install_cron
+        green "部署完毕，你可以用它愉快的玩耍了^_^ !"
       ;;
     [Nn]) exit 0 ;;
     *) red "无效的选择，请输入y或n" && menu ;;
@@ -119,7 +251,7 @@ uninstall_singbox() {
   reading "\n确定要卸载吗？【y/n】: " choice
     case "$choice" in
         [Yy])
-	      ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk '{print $2}' | xargs -r kill -9
+	      (ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" |awk '{print $2}' | xargs  -r kill -9)> /dev/null 2>&1
        	      rm -rf $WORKDIR
               del_cron
 	      clear
@@ -569,6 +701,16 @@ create_cron(){
   cd $path
 } 
 
+install_cron(){
+    reading "\n是否需要设置定时检测运行状态？【y/n】: " choice
+    case "$choice" in
+        [Yy])
+	        create_cron ;;
+        [Nn]) exit 0 ;;
+    	  *) red "无效的选择，请输入y或n" && menu ;;
+    esac
+}
+
 
 menu() {
    clear
@@ -597,7 +739,7 @@ menu() {
         2) uninstall_singbox ;; 
         3) cat $WORKDIR/list.txt ;; 
         4) create_cron ;;
-	5) kill_all_tasks ;;
+        5) kill_all_tasks ;;
         0) exit 0 ;;
         *) red "无效的选项，请输入 0 到 5" ;;
     esac
