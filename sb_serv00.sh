@@ -193,7 +193,7 @@ reserve_port() {
     
     printf "${purple}%-14s\t%-14s\t%-10s\n${re}" 端口类型 端口号 用途 
     printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$hy2_port" "hysteria2"
-    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$tuic_port" "tuic"
+    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$tuic_port" "hysteria2"
     printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" TCP "$vmess_port" "vmess"    
     
 }
@@ -537,7 +537,7 @@ download_singbox() {
   if [ "$ARCH" == "arm" ] || [ "$ARCH" == "arm64" ] || [ "$ARCH" == "aarch64" ]; then
       FILE_INFO=("https://github.com/eooce/test/releases/download/arm64/sb web" "https://github.com/eooce/test/releases/download/arm64/bot13 bot" "https://github.com/eooce/test/releases/download/ARM/swith npm")
   elif [ "$ARCH" == "amd64" ] || [ "$ARCH" == "x86_64" ] || [ "$ARCH" == "x86" ]; then
-      FILE_INFO=("https://eooce.2go.us.kg/web web" "https://eooce.2go.us.kg/bot bot" "https://eooce.2go.us.kg/npm npm")
+           FILE_INFO=("https://github.com/eooce/test/releases/download/freebsd/sb web" "https://github.com/eooce/test/releases/download/freebsd/server bot" "https://github.com/eooce/test/releases/download/freebsd/npm npm")
   else
       echo "Unsupported architecture: $ARCH"
       exit 1
