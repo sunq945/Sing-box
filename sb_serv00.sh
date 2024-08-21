@@ -736,7 +736,7 @@ install_cron(){
 menu() {
    clear
    echo ""
-   purple "=== (Serv00|ct8) sing-box一键安装脚本 v1.0.1 ===\n"
+   purple "=== (Serv00|ct8) sing-box一键安装脚本 v1.0.2 ===\n"
    echo -e "${green}脚本地址：${re}${yellow}https://github.com/sun945/Sing-box${re}\n"
    echo -e "原脚本地址：https://github.com/eooce/Sing-box\n"  
 
