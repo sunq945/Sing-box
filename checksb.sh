@@ -116,7 +116,7 @@ run_bot(){
 }
 
     if [ -z ${result} ]; then
-      red "web is not running, restarting..."
+      red "bot is not running, restarting..."
       pkill "$exe_bot"
       run_bot 
       sleep 2
