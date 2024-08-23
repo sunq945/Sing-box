@@ -193,7 +193,7 @@ reserve_port() {
     
     printf "${purple}%-14s\t%-14s\t%-10s\n${re}" 端口类型 端口号 用途 
     printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$hy2_port" "hysteria2"
-    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$tuic_port" "hysteria2"
+    printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" UDP "$tuic_port" "tuic"
     printf "${yellow}%-10s\t%-10s\t%-10s\n${re}" TCP "$vmess_port" "vmess"    
     
 }
